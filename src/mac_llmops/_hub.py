@@ -6,6 +6,13 @@ from typing import List, Optional
 
 
 class Models:
+    """Manage local model caches.
+
+    Args:
+        cache_dir: optionally change the path to the cache directory from the HuggingFace default.
+        max_vram_bytes: optionally override the maximum GPU memory available for running LLMs. The default value is derived from the local GPU.
+    """
+
     def __init__(
         self, cache_dir: Optional[str] = None, max_vram_bytes: Optional[int] = None
     ):
@@ -15,6 +22,7 @@ class Models:
         )
 
     def _will_fit_in_vram(self, model: ...) -> bool:
+        # does not take kv cache requirements into account
         if not model.safetensors:
             return False
         safetensors_mem_req = 0
@@ -26,6 +34,11 @@ class Models:
         return self._max_vram * 0.9 > safetensors_mem_req
 
     def add(self, model: str) -> None:
+        """Add a model from a HuggingFace hub to your local model cache.
+
+        Args:
+            model: name of model to add.
+        """
         huggingface_hub.snapshot_download(
             cache_dir=self._cache_dir,
             repo_id=model,
@@ -34,6 +47,11 @@ class Models:
         )
 
     def delete(self, model: str) -> None:
+        """Delete a model from your local model cache.
+
+        Args:
+            model: name of model to delete.
+        """
         cache = huggingface_hub.scan_cache_dir(cache_dir=self._cache_dir)
         model_revisions = []
         for repo in cache.repos:
@@ -43,22 +61,18 @@ class Models:
         delete_strategy.execute()
 
     def list(self) -> List[str]:
+        """Show all models in your local cache that will fit in GPU memory."""
         return self.search_local("")
 
-    def search_online(self, query: str, max_results: int = 5) -> List[str]:
-        models = list(
-            huggingface_hub.list_models(
-                model_name=query,
-                expand=["safetensors"],
-                gated=False,
-                limit=max_results,
-                sort="trending_score",
-                task="text-generation",
-            )
-        )
-        return [model.id for model in filter(self._will_fit_in_vram, models)]
-
     def search_local(self, query: str) -> List[str]:
+        """Search your local model cache for models that will fit in GPU memory.
+
+        Args:
+            query: space separated search terms to match in the model name.
+
+        Returns:
+            A list of models that contain all search terms in their name.
+        """
         models = []
         query_terms = [t.lower() for t in query.split()]
         for repo in huggingface_hub.scan_cache_dir().repos:
@@ -78,3 +92,25 @@ class Models:
                 if self._max_vram * 0.9 > safetensors_mem_req:
                     models.append(repo.repo_id)
         return models
+
+    def search_online(self, query: str, max_results: int = 5) -> List[str]:
+        """Search a HuggingFace hub for models that will fit in GPU memory.
+
+        Args:
+            query: space separated search terms to match in the model name.
+            max_results: number of results returned from the HuggingFace hub, before filtering for GPU memory requirements.
+
+        Returns:
+            A list of models that contain all search terms in their name.
+        """
+        models = list(
+            huggingface_hub.list_models(
+                model_name=query,
+                expand=["safetensors"],
+                gated=False,
+                limit=max_results,
+                sort="trending_score",
+                task="text-generation",
+            )
+        )
+        return [model.id for model in filter(self._will_fit_in_vram, models)]
