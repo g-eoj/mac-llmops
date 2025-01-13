@@ -1,11 +1,10 @@
 # mac-llmops
 
-The new Apple silicon is great for running LLMs.
-This library attempts to simplify the process of trying new LLMs by:
+This library attempts to simplify the process of trying LLMs on Apple silicon:
 
-- simplifying local model cache management (despite the extra memory Apple gives us now, the default SSD size is still painfully small)
-- providing local and online model searches that automatically filter out models that have no chance of fitting in your Mac's GPU memory
+- Simplifies local model cache management.
+- Provides local and online model searches that automatically filter out models that have no chance of fitting in your Mac's memory.
 
 ## Usage
 
-See the example notebook.
+Please see the examples notebook.
