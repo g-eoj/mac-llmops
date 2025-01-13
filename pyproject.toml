@@ -3,10 +3,8 @@ name = "mac-llmops"
 version = "0.0.1a"
 description = ""
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 dependencies = ["huggingface-hub>=0.27.1", "mlx>=0.21.1"]
 
 [dependency-groups]
-dev = [
-    "nbdev>=2.3.34",
-]
+dev = ["nbdev>=2.3.34"]
