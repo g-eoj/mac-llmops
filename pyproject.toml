@@ -1,10 +1,13 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "mac-llmops"
-version = "0.0.1a"
-description = ""
+dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = ["huggingface-hub>=0.27.1", "mlx>=0.21.1"]
 
-[dependency-groups]
-dev = ["nbdev>=2.3.34"]
+[tool.setuptools.dynamic]
+version = { attr = "mac_llmops._version.__version__" }
