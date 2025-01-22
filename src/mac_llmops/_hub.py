@@ -90,10 +90,10 @@ class Models:
                     ]
                 )
                 if self._max_vram * 0.9 > safetensors_mem_req:
-                    models.append(repo.repo_id)
+                    models.append({"model": repo.repo_id, "size_gb": round(repo.size_on_disk / 2**30, 2)})
         return models
 
-    def search_online(self, query: str, max_results: int = 5) -> List[str]:
+    def search_online(self, query: str, max_results: int = 20) -> List[str]:
         """Search a HuggingFace hub for models that will fit in GPU memory.
 
         Args:
