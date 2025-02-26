@@ -1,3 +1,4 @@
+import json
 import huggingface_hub
 import warnings
 
@@ -76,21 +77,31 @@ class Models:
         models = []
         query_terms = [t.lower() for t in query.split()]
         for repo in huggingface_hub.scan_cache_dir().repos:
+            if repo.repo_type != "model":
+                continue
             matches = [t in repo.repo_id.lower() for t in query_terms]
             if all(matches):
                 revisions = list(repo.revisions)
                 if len(revisions) > 1:
                     warnings.warn("Multiple revisions detected.")
                 revision = revisions[0]
-                safetensors_mem_req = sum(
-                    [
-                        f.size_on_disk
-                        for f in revision.files
-                        if f.file_name.endswith(".safetensors")
-                    ]
-                )
+                max_position_embeddings = float('inf')
+                model_max_length = float('inf')
+                safetensors_mem_req = 0
+                for f in revision.files:
+                    if f.file_name == "config.json":
+                        with open(f.file_path, "r") as config:
+                            max_position_embeddings = json.load(config).get("max_position_embeddings", float('inf'))
+                    if f.file_name == "tokenizer_config.json":
+                        with open(f.file_path, "r") as config:
+                            model_max_length = json.load(config).get("model_max_length", float('inf'))
+                    if f.file_name.endswith(".safetensors"):
+                        safetensors_mem_req += f.size_on_disk
+                max_tokens = min(max_position_embeddings, model_max_length)
                 if self._max_vram * 0.9 > safetensors_mem_req:
-                    models.append({"model": repo.repo_id, "size_gb": round(repo.size_on_disk / 2**30, 2)})
+                    models.append(
+                        {"model": repo.repo_id, "max_len": max_tokens, "size_gb": round(repo.size_on_disk / 2**30, 2)}
+                    )
         return models
 
     def search_online(self, query: str, max_results: int = 20) -> List[str]:
